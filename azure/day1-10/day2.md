@@ -1,284 +1,183 @@
-# Azure Task 2: Create and Access an Azure Virtual Machine
+# Task 2 - Create an Azure Virtual Machine (VM) via the Azure Portal
 
 ## Overview
 
-In this task, I created an Azure Virtual Machine according to the specified requirements and verified that I could connect to it using SSH.
+This task is part of the Nautilus DevOps team's incremental cloud migration strategy to Microsoft Azure. Virtual Machines are the core compute resource in Azure, allowing teams to run workloads in the cloud just as they would on physical servers. This task focuses on creating a Linux VM using the Azure Portal with specific configurations including image, size, storage, and network security settings.
 
-The VM was configured with:
+---
 
-| Configuration | Value |
-|---|---|
-| VM Name | `devops-vm` |
-| Region | `East US` |
-| Image | Ubuntu Server 24.04 LTS |
-| VM Size | `Standard_B1s` |
-| OS Disk | Default |
-| Data Disk | 30 GB Standard HDD |
-| Network Security Group | Default NSG |
-| Inbound Access | SSH (TCP 22) |
+## Objectives
+
+- Create a Virtual Machine named `devops-vm` in the `eastus` region
+- Use the existing Resource Group
+- Use the **Ubuntu 24.04 LTS** image
+- Set the VM size to `Standard_B1s`
+- Attach a default Network Security Group (NSG) that allows inbound SSH (port 22)
+- Attach a **30 GB Standard HDD** storage disk
+- Verify SSH access to the VM after creation
 
 ---
 
 ## Prerequisites
 
-- Azure subscription
-- Azure CLI
-- Access to the Azure client/landing host
-- Azure lab credentials
-- SSH client
+- Access to an active Azure subscription or lab credentials
+- A web browser to access the Azure Portal
+- An existing Resource Group
 
 ---
 
-* 1 Retrieve the Lab Credentials
+## Tools Used
 
-On the Azure client host, retrieve the temporary Azure credentials:
+| Tool | Purpose |
+|------|---------|
+| Azure Portal | Creating the VM via the GUI |
+| SSH | Verifying connectivity to the VM |
 
+---
+
+## Steps
+
+### 1. Sign in to the Azure Portal
+
+Go to [portal.azure.com](https://portal.azure.com) and sign in with your credentials.
+
+### 2. Navigate to Virtual Machines
+
+In the top search bar, type **"Virtual Machines"** and select it from the results.
+
+### 3. Create a New VM
+
+Click **"+ Create"** → Select **"Azure Virtual Machine"**.
+
+### 4. Configure the Basics Tab
+
+Fill in the following fields:
+
+| Field | Value |
+|-------|-------|
+| Subscription | Leave as default |
+| Resource Group | Select the existing resource group |
+| Virtual Machine Name | `devops-vm` |
+| Region | `(US) East US` |
+| Availability Options | No infrastructure redundancy required |
+| Image | `Ubuntu Server 24.04 LTS` |
+| VM Architecture | x64 |
+| Size | `Standard_B1s` (click "See all sizes" if not visible) |
+| Authentication Type | SSH public key or Password |
+| Username | `azureuser` (default) |
+| SSH Public Key / Password | Generate new key pair or set a password |
+
+Click **"Next: Disks"**.
+
+### 5. Configure the Disks Tab
+
+| Field | Value |
+|-------|-------|
+| OS Disk Type | **Standard HDD** |
+| OS Disk Size | **30 GB** (select "Change size" and set to 30 GiB) |
+
+Leave all other disk settings as default.
+
+Click **"Next: Networking"**.
+
+### 6. Configure the Networking Tab
+
+| Field | Value |
+|-------|-------|
+| Virtual Network | Leave as default (auto-created) |
+| Subnet | Leave as default |
+| Public IP | Leave as default (auto-created) |
+| NIC Network Security Group | **Basic** |
+| Public Inbound Ports | **Allow selected ports** |
+| Select Inbound Ports | **SSH (22)** |
+
+Click **"Next: Management"** → leave all as default.
+
+Click **"Next: Monitoring"** → leave all as default.
+
+Click **"Next: Advanced"** → leave all as default.
+
+### 7. Review and Create
+
+Click **"Review + Create"**. Wait for validation to pass, then click **"Create"**.
+
+> If you selected SSH public key, download the `.pem` key file when prompted — you will need it to SSH into the VM.
+
+### 8. Wait for Deployment to Complete
+
+The deployment typically takes 1–3 minutes. Once complete, click **"Go to resource"**.
+
+### 9. Get the VM's Public IP Address
+
+On the VM overview page, note the **Public IP address** displayed on the right side.
+
+### 10. SSH into the VM
+
+Open a terminal on your client host and run:
+
+**If using SSH key:**
 ```bash
-showcreds
+chmod 400 <downloaded-key>.pem
+ssh -i <downloaded-key>.pem azureuser@<PublicIPAddress>
 ```
 
-* 2 Log in to Azure
-Authenticate with Azure CLI:
-
+**If using password:**
 ```bash
-az login
+ssh azureuser@<PublicIPAddress>
 ```
 
-Verify the active subscription:
+---
 
-```bash
-az account show
+## Expected Output
+
+**Successful SSH login:**
 ```
-* 3 Find the Existing Resource Group
-The task requires using the existing resource group.
-
-List the resource groups:
-
-```
-az group list \
-  --query "[].name" \
-  --output table
-```  
-If the lab resource group follows the kml naming convention, it can be located with:
-```bash
-az group list \
-  --query "[].name" \
-  --output table | grep "kml"
-```
-Store the resource group name for the following commands:
-
-RG="<resource-group>"
-
-For example:
-
-```bash
-RG="kml_rg_main-xxxxxxxx"
-```
-* 4 Check Available Ubuntu 24.04 Images
-Before creating the VM, search for the Ubuntu 24.04 LTS image:
-
-```bash
-az vm image list \
-  --location eastus \
-  --publisher Canonical \
-  --offer ubuntu-24_04-lts \
-  --all \
-  --output table
-```
-The VM should use the Ubuntu 24.04 LTS image.
-
-* 5 Create the Virtual Machine
-Create the VM with the required configuration:
-
-```bash
-az vm create \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --location eastus \
-  --image Canonical:ubuntu-24_04-lts:server:24.04.202410020 \
-  --size Standard_B1s \
-  --admin-username azureuser \
-  --generate-ssh-keys \
-  --storage-sku Standard_LRS \
-  --os-disk-size-gb 30 \
-  --public-ip-sku Standard
-```
-The exact Ubuntu image URN available in the lab may differ. If the image URN returned by az vm image list is different, use the available Ubuntu 24.04 LTS image from that result.
-
-* 6 Configure SSH Access
-Allow inbound SSH traffic on port 22:
-
-```
-az vm open-port \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --port 22 \
-  --priority 1000
+Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.x.x-azure x86_64)
+azureuser@devops-vm:~$
 ```
 
-This creates or updates the network security configuration to allow SSH traffic.
+---
 
-* 7 Add the 30 GB Standard HDD Data Disk
-Create a 30 GB managed disk using Standard HDD:
+## VM Configuration Summary
 
-```bash
-az disk create \
-  --resource-group "$RG" \
-  --name devops-vm-data-disk \
-  --size-gb 30 \
-  --sku Standard_LRS \
-  --location eastus
-```
-Attach the Disk of the VM:
+| Property | Value |
+|----------|-------|
+| Name | `devops-vm` |
+| Region | `East US` |
+| Image | Ubuntu Server 24.04 LTS |
+| Size | Standard_B1s (1 vCPU, 1 GiB RAM) |
+| OS Disk Type | Standard HDD |
+| OS Disk Size | 30 GiB |
+| Inbound Ports | SSH (22) |
+| Authentication | SSH key or Password |
 
-```
-az vm disk attach \
-  --resource-group "$RG" \
-  --vm-name devops-vm \
-  --name devops-vm-data-disk
-```
+---
 
-* 8 Verify the VM Configuration
+## Key Concepts
 
-Check the VM details:
+- **Virtual Machine (VM):** A software-based computer that runs on physical hardware in an Azure data center. VMs give full control over the operating system and installed software.
+- **Ubuntu 24.04 LTS:** A Long Term Support release of Ubuntu Linux, supported for 5 years. LTS releases are preferred for production and lab environments due to their stability.
+- **Standard_B1s:** A burstable VM size with 1 vCPU and 1 GiB RAM. Suitable for lightweight workloads and dev/test environments. The "B" series accumulates CPU credits during idle periods and spends them during bursts.
+- **Standard HDD:** The most cost-effective disk type, using magnetic storage. Best for dev/test workloads and backups where high IOPS are not required.
+- **NSG (Network Security Group):** A firewall that filters inbound and outbound traffic. Selecting "Basic" NSG with SSH (22) automatically creates an allow rule for port 22.
+- **azureuser:** The default administrative user created on Azure Linux VMs. It has sudo privileges.
 
-```bash
-az vm show \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --show-details \
-  --output table
-```
+---
 
-Verify the VM size:
+## Notes
 
-```bash
-az vm show \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --query "hardwareProfile.vmSize"
-```
-
-Expected:
-
-```bash
-Standard_B1s"
-```
-Verify the VM location:
-
-```bash
-az vm show \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --query "location"
-```
-Expected:
-
-`eastus`
-
-* 9 Verify the Attached Data Disk
-List the disks attached to the VM:
-
-```bash
-az vm show \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --query "storageProfile.dataDisks[].{Name:name,SizeGB:diskSizeGb,LUN:lun}"
-Expected result should include the 30 GB data disk:
-```
-```bash
-Name                  SizeGB
---------------------  ------
-devops-vm-data-disk   30
-Verify the disk SKU:
-```
-
-```
-az disk show \
-  --resource-group "$RG" \
-  --name devops-vm-data-disk \
-  --query "{name:name,sizeGB:diskSizeGb,sku:sku.name}"
-Expected:
-
-{
-  "name": "devops-vm-data-disk",
-  "sizeGB": 30,
-  "sku": "Standard_LRS"
-}
-```
-
-* 10 Get the VM Public IP
-Retrieve the public IP address:
-
-```bash
-az vm show \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --show-details \
-  --query "publicIps" \
-  --output tsv
-Store the IP address:
-
-VM_IP=$(az vm show \
-  --resource-group "$RG" \
-  --name devops-vm \
-  --show-details \
-  --query "publicIps" \
-  --output tsv)
-```
-** Verify: **
-
-echo `$VM_IP`
-
-* 11 Verify SSH Port 22
-Check that the NSG allows SSH:
-
-```
-az network nsg rule list \
-  --resource-group "$RG" \
-  --nsg-name "$(az vm show \
-    --resource-group "$RG" \
+- If you generated an SSH key pair during VM creation, download and store the `.pem` file securely — Azure does not store the private key and it cannot be retrieved later.
+- The VM's public IP address is **dynamic** by default and may change if the VM is stopped and restarted. Use a static IP if a persistent address is needed.
+- Always deallocate VMs when not in use in lab environments to avoid consuming credits.
+- To verify the VM is running from the CLI:
+  ```bash
+  az vm show \
     --name devops-vm \
-    --query "networkProfile.networkInterfaces[0].id" \
-    --output tsv | xargs -n1 basename | xargs az network nic show \
-    --resource-group "$RG" \
-    --query "networkSecurityGroup.id" \
-    --output tsv | xargs -n1 basename)" \
-  --output table
-```
-Alternatively, inspect the VM's NIC and NSG through the Azure Portal.
+    --resource-group <ResourceGroupName> \
+    --show-details \
+    --query "{Name:name, State:powerState, PublicIP:publicIps}" \
+    -o table
+  ```
 
-The required inbound rule is:
-```bash
-Protocol: TCP
-Port:     22
-Access:   Allow
-Step 12: SSH into the VM
-Use the azureuser account specified by the task:
-```
-```bash
-ssh azureuser@"$VM_IP"
-```
-If the SSH key was generated automatically by Azure CLI, the corresponding private key should be available under:
-
-```
-~/.ssh/
-```
-If prompted about the host authenticity, confirm with:
-
-yes
-
-* 12	 Verify the VM from Inside the Server
-After connecting:
-
-hostname
-Expected:
-
-devops-vm
-Verify the operating system:
-
-```
-cat /etc/os-release
-```
-The output should show Ubuntu 24.04 LTS.
+---
 
