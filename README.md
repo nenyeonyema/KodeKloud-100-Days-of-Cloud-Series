@@ -5,6 +5,8 @@ This repo documents my hands-on journey through cloud infrastructure using **AWS
 
 This challenge is not about passive learning — it’s about **doing**, **breaking**, **fixing**, and **understanding cloud services deeply**, using real-world, task-driven scenarios.
 
+![KodeKloud Azure Cert](./Kodekloud-Azure-cert.jpg)
+![KodeKloud AWS Cert](./Kodekloud-AWS-Cert.jpg)
 ---
 
 ## 📌 Challenge Overview
