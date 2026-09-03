@@ -1,3 +1,4 @@
+
 # Task 48 — Lambda Function Deployment via CloudFormation
 
 ## Overview
@@ -222,7 +223,7 @@ Expected invocation response:
 ### Check the function response body
 
 ```bash
-cat response.json
+[Ocat response.json
 ```
 
 Expected:
